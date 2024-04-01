@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iterator>
 #include <vector>
+#include <filesystem>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/tracking.hpp>
@@ -68,6 +69,9 @@ int main(int argc, char **argv){
         return 1;
     };
     
+    // create output/ folder
+    std::filesystem::create_directories("./output");
+    
     std::string start_timestamp = current_timestamp();
 
     // video capture
@@ -81,10 +85,10 @@ int main(int argc, char **argv){
     int delay = 1000 / fps; // Calculate delay based on the framerate
     int frame_width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
     int frame_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-    int num_frames = cap.get(cv::CAP_PROP_FRAME_COUNT);  //NEWNEWNEW
+    //int num_frames = cap.get(cv::CAP_PROP_FRAME_COUNT);
 
     // video writer
-    std::string video_file_name = "output_" + start_timestamp + ".avi";
+    std::string video_file_name = "output/output_" + start_timestamp + ".avi";
     cv::VideoWriter output_video_writer = cv::VideoWriter(video_file_name, cv::VideoWriter::fourcc('H','2','6','4'), fps, cv::Size(frame_width,frame_height));
     
     // pre trained network
