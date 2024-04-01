@@ -11,7 +11,7 @@
 const int IN_W = 300;
 const int IN_H = 300;
 
-const float CONF_TRSH = 0.9;
+const float CONF_TRSH = 0.5;
 const float MEAN_SUBTRACTION_VAL = 127.5; // Result from doing 255/2
 const float SCALING_FACTOR = 0.00784; // Result from doing 2/255
 const float SECONDS_BETW_DETECTIONS = 3;
@@ -58,6 +58,31 @@ bool readClassNames(){
     return true;
 }
 
+void postprocess(cv::Mat& frame, const std::vector<cv::Mat>& outs){
+    cv::Mat outDetections = outs[0];
+    cv::Mat outMasks = outs[1];
+
+    int numDetections = outDetections.size[2];
+
+    outDetections = outDetections.reshape(1, outDetections.total() / 7);
+    for (int i = 0; i < numDetections; i++){
+        float confidence = outDetections.at<float>(i, 2);
+        int classId = outDetections.at<float>(i, 1);
+
+        if (confidence > CONF_TRSH && class_names[classId] == "person"){
+            // Extract the bounding box
+            int xLeftTop = outDetections.at<float>(i, 3) * frame.cols;
+            int yLeftTop =  outDetections.at<float>(i, 4) * frame.rows;
+            int xRightBottom = outDetections.at<float>(i, 5) * frame.cols;
+            int yRightBottom = outDetections.at<float>(i, 6) * frame.rows;
+
+            // keep boxes inside of bounds
+            
+        }
+    }
+
+}
+
 int main(int argc, char **argv){
     if (argc != 2) {
         std::cout << "Usage: " << APP_NAME << " <video path>" << std::endl;
@@ -96,7 +121,15 @@ int main(int argc, char **argv){
 
     cv::Mat frame{};
     while (cap.read(frame)){
-        
+        cv::Mat blob = cv::dnn::blobFromImage(frame, 1., cv::Size(frame.cols, frame.rows), cv::Scalar(), true, false);
+        net.setInput(blob);
+
+        std::vector<std::string> out_names{"detection_out_final", "detection_masks"};
+        std::vector<cv::Mat> outs{};
+        net.forward(outs, out_names);
+
+        postprocess(frame, outs);
+
     }
     cap.release();
     cv::destroyAllWindows();
