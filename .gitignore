@@ -35,8 +35,9 @@
 *.out
 *.app
 
-build/
 .vscode/
+build/
+model/
 *.Identifier
 *.log
 *.avi
