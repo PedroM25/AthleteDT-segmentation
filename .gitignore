@@ -39,6 +39,4 @@
 build/
 model/
 *.Identifier
-*.log
-*.avi
-*.webm
+output/
