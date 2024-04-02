@@ -1,12 +1,12 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-#include <iterator>
-#include <vector>
 #include <filesystem>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/tracking.hpp>
+
+namespace fs = std::filesystem;
 
 const float CONF_TRSH = 0.8;
 const float MASK_TRSH = 0.3;
@@ -20,19 +20,14 @@ const std::string CLASS_NAMES_PATH = "model/mask-rcnn-coco/object_detection_clas
 const cv::Scalar COLOR{0,255,0};
 
 std::vector<std::string> class_names{};
+std::ofstream log_file;
+int frame_count = 0;
 
-std::string current_timestamp(){
-    auto t = std::time(nullptr);
-    auto tm = *std::localtime(&t);
-
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%d-%m-%Y_%H-%M-%S");
-    return oss.str();
-}
-
+/*
+ * Read from file supported objects that model can identify
+ */
 bool readClassNames(){
     std::ifstream file(CLASS_NAMES_PATH);
-    class_names = std::vector<std::string>{};
     
     if (file.is_open()) {
         std::string line;
@@ -90,6 +85,14 @@ void postprocess(cv::Mat& frame, const std::vector<cv::Mat>& outs){
             int xRightBottom = outDetections.at<float>(i, 5) * frame.cols;
             int yRightBottom = outDetections.at<float>(i, 6) * frame.rows;
 
+            log_file << "FRAME " << frame_count << ": " << "Person detected, confidence: " << confidence << ", coordinates: [" 
+                << "["<<xLeftTop<<","<<yLeftTop<<"],"
+                << "["<<xRightBottom<<","<<yLeftTop<<"],"
+                << "["<<xLeftTop<<","<<yRightBottom<<"],"
+                << "["<<xRightBottom<<","<<yRightBottom<<"]"
+                << "]"
+                << std::endl;
+
             // keep boxes inside of bounds
             xLeftTop = std::max(0, std::min(xLeftTop, frame.cols -1));
             yLeftTop = std::max(0, std::min(yLeftTop, frame.rows -1));
@@ -108,43 +111,66 @@ void postprocess(cv::Mat& frame, const std::vector<cv::Mat>& outs){
 }
 
 int main(int argc, char **argv){
-    if (argc != 2) {
-        std::cout << "Usage: " << APP_NAME << " <video path>" << std::endl;
+    
+    if (argc == 1) {
+        std::cerr << "No arguments passed. Usage: " << APP_NAME << " <video path> [--visualize]" << std::endl;
         return 1;
     }
 
-    // read class names
+    // check if should show live processing of frames
+    bool showProcessing = false;
+    if (argc == 3 && std::string(argv[2]) == "--visualize"){
+        showProcessing = true;
+    }
+
     if (!readClassNames()){
         return 1;
     };
-    
+
     // create output/ folder
-    std::filesystem::create_directories("./output");
+    fs::create_directories("./output");
     
-    std::string start_timestamp = current_timestamp();
+    // Create log file
+    std::string video_file_name = fs::path(argv[1]).stem();
+    std::string log_file_name = "output/" + APP_NAME + "_" + video_file_name + ".log";
+    log_file= std::ofstream(log_file_name, std::ios::trunc);
+    if (!log_file.is_open()) {
+        std::cerr << "Error creating log file. Exiting." << std::endl;
+        return 1;
+    }
+
+    log_file << "Starting " << APP_NAME << " execution." << std::endl;
 
     // video capture
     cv::VideoCapture cap{argv[1]};
     if (!cap.isOpened()) {
-        std::cerr << "Error opening video stream or file. Exiting." << std::endl;
+        log_file << "Error opening video stream or file. Exiting." << std::endl;
         return 1;
     }
 
-    double fps = cap.get(cv::CAP_PROP_FPS); // video framerate
-    int delay = 1000 / fps; // Calculate delay based on the framerate
+    double fps = cap.get(cv::CAP_PROP_FPS);
     int frame_width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
     int frame_height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-    //int num_frames = cap.get(cv::CAP_PROP_FRAME_COUNT);
+    int num_frames = cap.get(cv::CAP_PROP_FRAME_COUNT);
+    log_file << "Successfully imported video " << fs::path(argv[1]).filename()
+        << ", FPS: " << fps 
+        << ", Num frames: " << num_frames 
+        << ", Resolution: " << frame_width << "x" << frame_height
+        << std::endl;
 
     // video writer
-    std::string video_file_name = "output/output_" + start_timestamp + ".avi";
-    cv::VideoWriter output_video_writer = cv::VideoWriter(video_file_name, cv::VideoWriter::fourcc('H','2','6','4'), fps, cv::Size(frame_width,frame_height));
+    std::string output_file_name = "output/output_" + video_file_name + ".mp4";
+    cv::VideoWriter output_video_writer = cv::VideoWriter(output_file_name, cv::VideoWriter::fourcc('m','p','4','v'), fps, cv::Size(frame_width,frame_height));
     
     // pre trained network
     cv::dnn::Net net = cv::dnn::readNetFromTensorflow(MODEL_WEIGHTS_PATH, MODEL_CONFIG_PATH);
 
+    int delay = 1000 / fps; // Calculate delay based on the framerate
+    int64_t start = cv::getTickCount();
+    std::cout << "Video processing has started..." << std::endl;
     cv::Mat frame{};
     while (cap.read(frame)){
+        frame_count++;
         cv::Mat blob = cv::dnn::blobFromImage(frame, 1., cv::Size(frame.cols, frame.rows), cv::Scalar(), true, false);
         net.setInput(blob);
 
@@ -153,9 +179,23 @@ int main(int argc, char **argv){
         net.forward(outs, out_names);
 
         postprocess(frame, outs);
+
         output_video_writer.write(frame);
-        cv::imshow(WIN_NAME, frame);
+        if(showProcessing){
+            cv::imshow(WIN_NAME, frame);
+        }
+
+        if (cv::waitKey(delay) == 27) { //ESC key
+            break;
+        }
     }
+    std::cout << "Processing finished. Check output folder" << std::endl;
+
+    log_file << "No more frames grabbed. Exiting..." << std::endl;
+    log_file << "Total number of frames processed: " << frame_count << std::endl;
+    int64_t end = cv::getTickCount();
+    log_file << "Processing time: " << (end-start)/cv::getTickFrequency() << "s" << std::endl;
     cap.release();
     cv::destroyAllWindows();
+    log_file.close();
 }
