@@ -24,7 +24,7 @@ std::ofstream log_file;
 int frame_count = 0;
 
 /*
- * Read from file supported objects that model can identify
+ * Read from file objects over which the model was trained
  */
 bool readClassNames(){
     std::ifstream file(CLASS_NAMES_PATH);
