@@ -2,7 +2,7 @@ My attempt at the Swiss Timing coding challenge
 
 ## Solution
 
-This solution uses the Mask-RCNN pre-trained model from TensorFlow for object detection. [Source](http://download.tensorflow.org/models/object_detection/mask_rcnn_inception_v2_coco_2018_01_28.tar.gz)
+This solution uses the Mask-RCNN pre-trained model from TensorFlow for object detection. Downloaded from [TensorFlow](http://download.tensorflow.org/models/object_detection/mask_rcnn_inception_v2_coco_2018_01_28.tar.gz) and the repo for the implementation of Mask-RCNN can be seen [here](https://github.com/matterport/Mask_RCNN)
 * Confidence considered for object detection model: 0.6
 * Libraries used: OpenCV 4.9.0, built from source
 * Output stored in a `output/` under same folder as bin
