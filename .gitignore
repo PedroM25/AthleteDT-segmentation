@@ -37,6 +37,4 @@
 
 .vscode/
 build/
-model/
 *.Identifier
-output/
