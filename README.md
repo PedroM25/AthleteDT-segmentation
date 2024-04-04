@@ -2,7 +2,7 @@ My attempt at the Swiss Timing coding challenge
 
 ## Solution
 
-This solution uses the Mask-RCNN pre-trained model from TensorFlow [(download here)](http://download.tensorflow.org/models/object_detection/mask_rcnn_inception_v2_coco_2018_01_28.tar.gz) for object detection.
+This solution uses the Mask-RCNN pre-trained model from TensorFlow for object detection. Downloaded from [TensorFlow](http://download.tensorflow.org/models/object_detection/mask_rcnn_inception_v2_coco_2018_01_28.tar.gz) and the repo for the implementation of Mask-RCNN can be seen [here](https://github.com/matterport/Mask_RCNN)
 * Confidence considered for object detection model: 0.6
 * Libraries used: OpenCV 4.9.0, built from source
 * Output stored in a `output/` under same folder as bin
@@ -25,7 +25,7 @@ The `--visualize` flag is boolean and if passed as an argument allows you to sho
 
 **Video:**
 
-[ice_skating2_4s.mp4]()
+[ice_skating2_4s.mp4](https://github.com/PedroM25/AthleteDT-segmentation/assets/40021588/ed30cacb-7368-494f-95b8-ec540f52697d)
 
 **Log file:**
 
