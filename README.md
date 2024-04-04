@@ -13,7 +13,7 @@ Any other "person" detected is ignored.
 
 ## Usage
 
-AthleteDT-seg <video path> [--visualize]
+`AthleteDT-seg <video path> [--visualize]`
 
 The `--visualize` flag is boolean and if passed as an argument allows you to show the frame post-process live.
 
